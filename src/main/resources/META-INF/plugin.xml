@@ -39,7 +39,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
 
         <!-- needed for completion -->
         <completion.contributor implementationClass="org.wso2.lsp4intellij.contributors.LSPCompletionContributor"
-                                id="org.wso2.lsp4intellij.contributors.LSPCompletionContributor" language="Ballerina"/>
+                                id="org.wso2.lsp4intellij.contributors.LSPCompletionContributor" language="any"/>
 <!--         needed for completion as well as signature help -->
         <typedHandler implementation="org.wso2.lsp4intellij.listeners.LSPTypedHandler"
                       id="LSPTypedHandler"/>
@@ -49,15 +49,20 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                            implementationClass="org.wso2.lsp4intellij.contributors.annotator.LSPAnnotator"/>
 
         <!-- needed for Workspace Symbols -->
-<!--        <gotoSymbolContributor implementation="org.wso2.lsp4intellij.contributors.symbol.LSPSymbolContributor"-->
-<!--                               id="LSPSymbolContributor"/>-->
+        <gotoSymbolContributor implementation="org.wso2.lsp4intellij.contributors.symbol.LSPSymbolContributor"
+                               id="LSPSymbolContributor"/>
 
         <!-- needed for renaming -->
 <!--        <renameHandler implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameHandler" id="LSPRenameHandler" order="first"/>-->
-<!--        <renamePsiElementProcessor implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameProcessor" id="LSPRenameProcessor" order="first"/>-->
+        <renamePsiElementProcessor implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameProcessor" id="LSPRenameProcessor" order="first"/>
+
+
+        <notificationGroup id="LSPProgressNotification"
+                           displayType="NONE"
+                            />
 
 <!--         needed for folding support -->
-<!--        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" order="first" />-->
+        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" order="first" />
     </extensions>
 
     <actions>
@@ -66,9 +71,14 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
         </action>
 
         <!-- needed for find references -->
-<!--        <action class="org.wso2.lsp4intellij.actions.LSPReferencesAction" id="LSPFindUsages">-->
-<!--            <keyboard-shortcut first-keystroke="shift alt F7" keymap="$default"/>-->
-<!--        </action>-->
+        <action class="org.wso2.lsp4intellij.actions.LSPReferencesAction" id="LSPFindUsages">
+            <keyboard-shortcut first-keystroke="shift alt F7" keymap="$default"/>
+        </action>
+        <action class="org.wso2.lsp4intellij.actions.LSPReformatAction" id="ReformatCode"
+                use-shortcut-of="ReformatCode"
+                overrides="true" text="Reformat Code"/>
+        <action class="org.wso2.lsp4intellij.actions.LSPShowReformatDialogAction" id="ShowReformatFileDialog"
+                use-shortcut-of="ShowReformatFileDialog" overrides="true" text="Show Reformat File Dialog"/>
     </actions>
     <applicationListeners>
         <!-- required for lsp file sync -->

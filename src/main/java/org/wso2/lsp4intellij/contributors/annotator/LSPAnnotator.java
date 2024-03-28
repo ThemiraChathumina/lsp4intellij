@@ -101,6 +101,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             return;
         }
 
+
         VirtualFile virtualFile = file.getVirtualFile();
         if (FileUtils.isFileSupported(virtualFile) && IntellijLanguageClient.isExtensionSupported(virtualFile)) {
             String uri = FileUtils.VFSToURI(virtualFile);
@@ -109,6 +110,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
             if (eventManager.isDiagnosticSyncRequired()) {
                 try {
+                    System.out.println("Updating LSP diagnostics");
                     createAnnotations(holder, eventManager);
                 } catch (ConcurrentModificationException e) {
                     // Todo - Add proper fix to handle concurrent modifications gracefully.

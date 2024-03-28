@@ -17,6 +17,8 @@ package org.wso2.lsp4intellij.client.languageserver.requestmanager;
 
 import org.eclipse.lsp4j.*;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
+import org.eclipse.lsp4j.jsonrpc.services.JsonNotification;
+import org.eclipse.lsp4j.jsonrpc.services.JsonRequest;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -179,4 +181,5 @@ public interface RequestManager extends LanguageClient, TextDocumentService, Wor
 
     @Override
     CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params);
+
 }

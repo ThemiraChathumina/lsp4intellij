@@ -17,6 +17,8 @@ package org.wso2.lsp4intellij.editor;
 
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
+import com.intellij.codeInsight.daemon.impl.AnnotationHolderImpl;
+import com.intellij.codeInsight.daemon.impl.AnnotationHolderImpl;
 import com.intellij.codeInsight.hint.HintManager;
 import com.intellij.codeInsight.lookup.AutoCompletionPolicy;
 import com.intellij.codeInsight.lookup.LookupElement;
@@ -27,6 +29,7 @@ import com.intellij.codeInsight.template.impl.TextExpression;
 import com.intellij.lang.Language;
 import com.intellij.lang.LanguageDocumentation;
 import com.intellij.lang.annotation.Annotation;
+import com.intellij.lang.annotation.AnnotationBuilder;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.actionSystem.ActionManager;
@@ -95,6 +98,8 @@ import static org.wso2.lsp4intellij.requests.Timeouts.*;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.*;
 import static org.wso2.lsp4intellij.utils.DocumentUtils.toEither;
 import static org.wso2.lsp4intellij.utils.GUIUtils.createAndShowEditorHint;
+
+import static java.lang.Thread.sleep;
 
 /**
  * Class handling events related to an Editor (a Document)
@@ -1407,6 +1412,11 @@ public class EditorEventManager {
     }
 
     public void requestAndShowCodeActions() {
+//        this.anonHolder
+//                .newAnnotation(HighlightSeverity.INFORMATION, "codeAction.getTitle()")
+//                .range(new TextRange(0, 0))
+//                .create();
+
         invokeLater(() -> {
             if (editor.isDisposed()) {
                 return;
@@ -1421,7 +1431,7 @@ public class EditorEventManager {
             if (codeActionResp == null || codeActionResp.isEmpty()) {
                 return;
             }
-
+            System.out.println(codeActionResp);
             codeActionResp.forEach(element -> {
                 if (element == null) {
                     return;
@@ -1439,6 +1449,7 @@ public class EditorEventManager {
                     });
                 } else if (element.isRight()) {
                     CodeAction codeAction = element.getRight();
+                    System.out.println(codeAction);
                     List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
                     annotations.forEach(annotation -> {
                         int start = annotation.getStartOffset();
@@ -1450,25 +1461,33 @@ public class EditorEventManager {
                         }
                     });
 
-                    // If the code actions does not have a diagnostics context, creates an intention action for
-                    // the current line.
-                    if ((diagnosticContext == null || diagnosticContext.isEmpty()) && anonHolder != null && !codeActionSyncRequired) {
+//                     If the code actions does not have a diagnostics context, creates an intention action for
+//                     the current line.
+                    if ((diagnosticContext == null || diagnosticContext.isEmpty()) && this.anonHolder != null && !codeActionSyncRequired) {
                         // Calculates text range of the current line.
                         int line = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
                         int startOffset = editor.getDocument().getLineStartOffset(line);
                         int endOffset = editor.getDocument().getLineEndOffset(line);
                         TextRange range = new TextRange(startOffset, endOffset);
 
-                        this.anonHolder
-                                .newAnnotation(HighlightSeverity.INFORMATION, codeAction.getTitle())
-                                .range(range)
-                                .withFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction))
-                                .create();
+                        try {
+                            this.anonHolder
+                                    .newAnnotation(HighlightSeverity.INFORMATION, codeAction.getTitle())
+                                    .range(range)
+                                    .withFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction))
+                                    .create();
+//
+                            SmartList<Annotation> asList = (SmartList<Annotation>) this.anonHolder;
+                            this.annotations.add(asList.get(asList.size() - 1));
+                        } catch (IllegalArgumentException e) {
+                            LOG.warn("Error when creating new annotation");
+                        }
 
-                        SmartList<Annotation> asList = (SmartList<Annotation>) this.anonHolder;
-                        this.annotations.add(asList.get(asList.size() - 1));
 
-
+//                        Annotation annotation = this.anonHolder.createAnnotation(HighlightSeverity.INFORMATION, range, codeAction.getTitle());
+//                        annotation.registerFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction), range);
+//                        this.annotations.add(annotation);
+//                        System.out.println("Code Action Annotation: " + annotation);
                         diagnosticSyncRequired = true;
                     }
                 }

@@ -16,7 +16,9 @@
 package org.wso2.lsp4intellij.client.languageserver.wrapper;
 
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.jsonrpc.JsonRpcException;
 import org.eclipse.lsp4j.jsonrpc.MessageConsumer;
+import org.eclipse.lsp4j.jsonrpc.MessageIssueException;
 import org.eclipse.lsp4j.jsonrpc.messages.Message;
 import org.eclipse.lsp4j.jsonrpc.messages.ResponseMessage;
 import org.eclipse.lsp4j.services.LanguageServer;
@@ -39,13 +41,14 @@ class MessageHandler implements Function<MessageConsumer, MessageConsumer> {
 
     @Override
     public MessageConsumer apply(MessageConsumer messageConsumer) {
+
         return message -> {
             if(isRunning.getAsBoolean()) {
+                System.out.println("Message received: " + message);
                 handleMessage(message);
                 messageConsumer.consume(message);
             }
         };
-
     }
 
     private void handleMessage(Message message) {

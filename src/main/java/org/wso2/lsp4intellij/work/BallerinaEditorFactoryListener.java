@@ -45,7 +45,7 @@ public class BallerinaEditorFactoryListener implements EditorFactoryListener {
     private static void doRegister(@NotNull Project project) {
         System.out.println("doRegister: ");
         List<String> args = new ArrayList<>();
-        args.add("C:\\Program Files\\Ballerina\\distributions\\ballerina-2201.0.0\\bin\\bal.bat");
+        args.add("C:\\Program Files\\Ballerina\\distributions\\ballerina-2201.8.4\\bin\\bal.bat");
         args.add("start-language-server");
         ProcessBuilder processBuilder = new ProcessBuilder(args);
         processBuilder.directory(new File(Objects.requireNonNull(project.getBasePath())));
