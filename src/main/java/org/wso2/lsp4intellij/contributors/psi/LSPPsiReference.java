@@ -42,7 +42,7 @@ public class LSPPsiReference implements PsiReference {
      * @return the underlying element of the reference.
      */
     public PsiElement getElement() {
-        System.out.println(element);
+//        System.out.println(element);
         return element;
     }
 

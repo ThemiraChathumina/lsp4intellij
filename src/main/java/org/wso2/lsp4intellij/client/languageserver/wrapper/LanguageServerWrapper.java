@@ -528,8 +528,7 @@ public class LanguageServerWrapper {
                     languageServer = launcher.getRemoteProxy();
                     launcherFuture = launcher.startListening();
                 } else {
-                    System.out.println("adwidniwadnawjdnawjdn");
-                    System.out.println(initializeResult);
+//                    System.out.println(initializeResult);
                     client = new DefaultLanguageClient(new ServerWrapperBaseClientContext(this),ext);
                     Launcher<LanguageServer> launcher = Launcher
                             .createLauncher(client, LanguageServer.class, inputStream, outputStream, executorService,
@@ -542,7 +541,7 @@ public class LanguageServerWrapper {
                 initializeFuture = languageServer.initialize(initParams).thenApply(res -> {
                     initializeResult = res;
                     LOG.info("Got initializeResult for " + serverDefinition + " ; " + projectRootPath);
-                    System.out.println(initializeResult);
+//                    System.out.println(initializeResult);
                     if (extManager != null) {
                         requestManager = extManager.getExtendedRequestManagerFor(this, languageServer, client, res.getCapabilities());
                         if (requestManager == null) {

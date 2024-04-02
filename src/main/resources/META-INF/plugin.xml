@@ -86,5 +86,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                   topic="com.intellij.openapi.vfs.VirtualFileListener"/>
         <listener class="org.wso2.lsp4intellij.listeners.LSPProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
+        <listener class="org.wso2.lsp4intellij.listeners.LSPFileEditorListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
     </applicationListeners>
 </idea-plugin>

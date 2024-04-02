@@ -111,6 +111,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             if (eventManager.isDiagnosticSyncRequired()) {
                 try {
                     System.out.println("Updating LSP diagnostics");
+                    System.out.println(virtualFile.getName());
                     createAnnotations(holder, eventManager);
                 } catch (ConcurrentModificationException e) {
                     // Todo - Add proper fix to handle concurrent modifications gracefully.

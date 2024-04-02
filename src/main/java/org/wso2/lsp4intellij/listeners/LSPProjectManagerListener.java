@@ -33,6 +33,7 @@ public class LSPProjectManagerListener implements ProjectManagerListener {
     @Override
     public void projectOpened(@Nullable final Project project) {
         // Todo
+
     }
 
     @Override

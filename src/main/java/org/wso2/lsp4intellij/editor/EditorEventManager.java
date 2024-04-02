@@ -483,6 +483,7 @@ public class EditorEventManager {
         synchronized (this.diagnostics) {
             this.diagnostics.clear();
             this.diagnostics.addAll(diagnostics);
+//            System.out.println(this.diagnostics);
             diagnosticSyncRequired = true;
             // Triggers force full DaemonCodeAnalyzer execution.
             updateErrorAnnotations();
@@ -1252,6 +1253,7 @@ public class EditorEventManager {
                 LOG.warn("Editor " + editor + " was already open");
             } else {
                 documentEventManager.documentOpened();
+                documentEventManager.documentOpened();
 
                 isOpen = true;
             }
@@ -1431,7 +1433,7 @@ public class EditorEventManager {
             if (codeActionResp == null || codeActionResp.isEmpty()) {
                 return;
             }
-            System.out.println(codeActionResp);
+//            System.out.println(codeActionResp);
             codeActionResp.forEach(element -> {
                 if (element == null) {
                     return;
@@ -1449,7 +1451,7 @@ public class EditorEventManager {
                     });
                 } else if (element.isRight()) {
                     CodeAction codeAction = element.getRight();
-                    System.out.println(codeAction);
+//                    System.out.println(codeAction);
                     List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
                     annotations.forEach(annotation -> {
                         int start = annotation.getStartOffset();
