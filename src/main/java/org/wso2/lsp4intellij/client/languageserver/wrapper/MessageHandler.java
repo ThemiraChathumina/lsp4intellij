@@ -44,7 +44,7 @@ class MessageHandler implements Function<MessageConsumer, MessageConsumer> {
 
         return message -> {
             if(isRunning.getAsBoolean()) {
-//                System.out.println("Message received: " + message);
+                System.out.println("Message received: " + message);
                 handleMessage(message);
                 messageConsumer.consume(message);
             }
@@ -64,3 +64,4 @@ class MessageHandler implements Function<MessageConsumer, MessageConsumer> {
         this.languageServer = languageServer;
     }
 }
+

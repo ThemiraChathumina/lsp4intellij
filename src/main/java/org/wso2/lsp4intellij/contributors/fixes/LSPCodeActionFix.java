@@ -59,11 +59,14 @@ public class LSPCodeActionFix implements IntentionAction {
 
     @Override
     public void invoke(@NotNull Project project, Editor editor, PsiFile psiFile) {
+        System.out.println(codeAction.getTitle());
+        System.out.println(codeAction.getEdit());
         if (codeAction.getEdit() != null) {
             WorkspaceEditHandler.applyEdit(codeAction.getEdit(), codeAction.getTitle());
         }
         EditorEventManager manager = EditorEventManagerBase.forEditor(editor);
         if (manager != null) {
+            System.out.println("Executing command: " + codeAction.getCommand());
             manager.executeCommands(Collections.singletonList(codeAction.getCommand()));
         }
     }

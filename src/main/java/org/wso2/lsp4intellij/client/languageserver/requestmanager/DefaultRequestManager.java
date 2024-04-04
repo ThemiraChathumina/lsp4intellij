@@ -119,7 +119,7 @@ public class DefaultRequestManager implements RequestManager {
         this.server = server;
         this.client = client;
         this.serverCapabilities = serverCapabilities;
-
+//        System.out.println("server capabilities: " + serverCapabilities);
         textDocumentOptions = serverCapabilities.getTextDocumentSync().isRight() ? serverCapabilities.getTextDocumentSync().getRight() : null;
         workspaceService = server.getWorkspaceService();
         textDocumentService = server.getTextDocumentService();

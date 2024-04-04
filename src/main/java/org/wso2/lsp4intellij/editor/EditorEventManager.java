@@ -143,6 +143,8 @@ public class EditorEventManager {
     private volatile boolean diagnosticSyncRequired = true;
     private volatile boolean codeActionSyncRequired = false;
 
+    private boolean annotationsRefreshed = false;
+
     private static final long CTRL_THRESH = EditorSettingsExternalizable.getInstance().getTooltipsDelay() * 1000000;
 
     public static final String SNIPPET_PLACEHOLDER_REGEX = "(\\$\\{\\d+:?([^{^}]*)}|\\$\\d+)";
@@ -440,6 +442,12 @@ public class EditorEventManager {
      */
     public synchronized List<Diagnostic> getDiagnostics() {
         this.diagnosticSyncRequired = false;
+//        System.out.print(identifier.getUri());
+//        System.out.print(" getDiagnostics ");
+//        System.out.print(" diagnostic:");
+//        System.out.print(diagnosticSyncRequired);
+//        System.out.print(" codeAction:");
+//        System.out.println(codeActionSyncRequired);
         return this.diagnostics;
     }
 
@@ -448,6 +456,12 @@ public class EditorEventManager {
      */
     public synchronized List<Annotation> getAnnotations() {
         this.codeActionSyncRequired = false;
+//        System.out.print(identifier.getUri());
+//        System.out.print(" getAnnotations ");
+//        System.out.print(" diagnostic:");
+//        System.out.print(diagnosticSyncRequired);
+//        System.out.print(" codeAction:");
+//        System.out.println(codeActionSyncRequired);
         return this.annotations;
     }
 
@@ -485,6 +499,13 @@ public class EditorEventManager {
             this.diagnostics.addAll(diagnostics);
 //            System.out.println(this.diagnostics);
             diagnosticSyncRequired = true;
+//            System.out.print(identifier.getUri());
+//            System.out.print(" diagnostics ");
+//            System.out.print(" diagnostic:");
+//            System.out.print(diagnosticSyncRequired);
+//            System.out.print(" codeAction:");
+//            System.out.println(codeActionSyncRequired);
+//            System.out.println(codeActionSyncRequired);
             // Triggers force full DaemonCodeAnalyzer execution.
             updateErrorAnnotations();
         }
@@ -1189,18 +1210,24 @@ public class EditorEventManager {
                 return wrapper.getRequestManager().executeCommand(params);
             }).filter(Objects::nonNull).forEach(f -> {
                 try {
-                    f.get(getTimeout(EXECUTE_COMMAND), TimeUnit.MILLISECONDS);
+                    var x = f.get(getTimeout(EXECUTE_COMMAND), TimeUnit.MILLISECONDS);
+                    System.out.println(x);
+                    System.out.println("executeCommands success");
                     wrapper.notifySuccess(Timeouts.EXECUTE_COMMAND);
                 } catch (TimeoutException te) {
                     LOG.warn(te);
+                    System.out.println("executeCommands TimeoutException");
                     wrapper.notifyFailure(Timeouts.EXECUTE_COMMAND);
                 } catch (JsonRpcException | ExecutionException | InterruptedException e) {
                     LOG.warn(e);
+                    System.out.println("executeCommands JsonRpcException | ExecutionException | InterruptedException");
                     wrapper.crashed(e);
                 }
             });
         });
     }
+
+
 
     private void saveDocument() {
         FileDocumentManager.getInstance().saveDocument(editor.getDocument());
@@ -1418,7 +1445,11 @@ public class EditorEventManager {
 //                .newAnnotation(HighlightSeverity.INFORMATION, "codeAction.getTitle()")
 //                .range(new TextRange(0, 0))
 //                .create();
-
+//        System.out.print(" codeActions start");
+//        System.out.print(" diagnostic:");
+//        System.out.print(diagnosticSyncRequired);
+//        System.out.print(" codeAction:");
+//        System.out.println(codeActionSyncRequired);
         invokeLater(() -> {
             if (editor.isDisposed()) {
                 return;
@@ -1451,7 +1482,7 @@ public class EditorEventManager {
                     });
                 } else if (element.isRight()) {
                     CodeAction codeAction = element.getRight();
-//                    System.out.println(codeAction);
+                    System.out.println(codeAction);
                     List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
                     annotations.forEach(annotation -> {
                         int start = annotation.getStartOffset();
@@ -1462,7 +1493,6 @@ public class EditorEventManager {
                             codeActionSyncRequired = true;
                         }
                     });
-
 //                     If the code actions does not have a diagnostics context, creates an intention action for
 //                     the current line.
                     if ((diagnosticContext == null || diagnosticContext.isEmpty()) && this.anonHolder != null && !codeActionSyncRequired) {
@@ -1493,19 +1523,35 @@ public class EditorEventManager {
                         diagnosticSyncRequired = true;
                     }
                 }
+//                System.out.print(" codeActions end");
+//                System.out.print(" diagnostic:");
+//                System.out.print(diagnosticSyncRequired);
+//                System.out.print(" codeAction:");
+//                System.out.println(codeActionSyncRequired);
+//                for (Annotation annotation : annotations) {
+//                    System.out.print(annotation.getMessage() + " ");
+//                    System.out.println(annotation.getQuickFixes());
+//                }
             });
             // If code actions are updated, forcefully triggers the inspection tool.
             if (codeActionSyncRequired) {
                 // double-delay the update to ensure that the code analyzer finishes.
                 invokeLater(this::updateErrorAnnotations);
             }
+            annotationsRefreshed = false;
         });
+
     }
 
     /**
      * Triggers force full DaemonCodeAnalyzer execution.
      */
     private void updateErrorAnnotations() {
+//        System.out.println("Updating Error Annotations");
+//        for (Annotation annotation : annotations) {
+//            System.out.print(annotation.getMessage() + " ");
+//            System.out.println(annotation.getQuickFixes());
+//        }
         computableReadAction(() -> {
             final PsiFile file = PsiDocumentManager.getInstance(project)
                     .getCachedPsiFile(editor.getDocument());
@@ -1516,6 +1562,13 @@ public class EditorEventManager {
             DaemonCodeAnalyzer.getInstance(project).restart(file);
             return null;
         });
+    }
+
+    public void refreshAnnotations(){
+        if (!annotationsRefreshed){
+            updateErrorAnnotations();
+            annotationsRefreshed = true;
+        }
     }
 
     private static class LSPTextEdit implements Comparable<LSPTextEdit> {

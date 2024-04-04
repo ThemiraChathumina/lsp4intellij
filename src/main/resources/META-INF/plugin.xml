@@ -19,6 +19,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                 fieldName="INSTANCE"
                 language="Ballerina"
                 extensions="bal"/>
+
         <!-- register a preloading activity. You need to init IntellijLanguageClient with your config, see readme -->
         <preloadingActivity implementation="org.wso2.lsp4intellij.work.BallerinaPreloadingActivity" id="org.wso2.lsp4intellij.work.BallerinaPreloadingActivity"/>
 
@@ -62,7 +63,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                             />
 
 <!--         needed for folding support -->
-        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" order="first" />
+<!--        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" order="first" />-->
     </extensions>
 
     <actions>
@@ -86,7 +87,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                   topic="com.intellij.openapi.vfs.VirtualFileListener"/>
         <listener class="org.wso2.lsp4intellij.listeners.LSPProjectManagerListener"
                   topic="com.intellij.openapi.project.ProjectManagerListener"/>
-        <listener class="org.wso2.lsp4intellij.listeners.LSPFileEditorListener"
-                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+<!--        <listener class="org.wso2.lsp4intellij.listeners.LSPFileEditorListener"-->
+<!--                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>-->
     </applicationListeners>
 </idea-plugin>

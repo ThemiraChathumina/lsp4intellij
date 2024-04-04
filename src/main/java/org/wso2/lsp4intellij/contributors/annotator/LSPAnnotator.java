@@ -76,11 +76,17 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             if (eventManager == null) {
                 return null;
             }
-
+//            System.out.print(virtualFile.getName());
+//            System.out.print(" Collecting information ");
+//            System.out.print(" diagnostic:");
+//            System.out.print(eventManager.isDiagnosticSyncRequired());
+//            System.out.print(" codeAction:");
+//            System.out.println(eventManager.isCodeActionSyncRequired());
+//            eventManager.requestAndShowCodeActions();
             // If the diagnostics list is locked, we need to skip annotating the file.
-            if (!(eventManager.isDiagnosticSyncRequired() || eventManager.isCodeActionSyncRequired())) {
-                return null;
-            }
+//            if (!(eventManager.isDiagnosticSyncRequired() || eventManager.isCodeActionSyncRequired())) {
+//                return null;
+//            }
             return RESULT;
         } catch (Exception e) {
             return null;
@@ -103,15 +109,35 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
 
         VirtualFile virtualFile = file.getVirtualFile();
+//        System.out.println("Applying annotations");
+//        System.out.println(virtualFile.getName());
+
         if (FileUtils.isFileSupported(virtualFile) && IntellijLanguageClient.isExtensionSupported(virtualFile)) {
             String uri = FileUtils.VFSToURI(virtualFile);
             // TODO annotations are applied to a file / document not to an editor. so store them by file and not by editor..
             EditorEventManager eventManager = EditorEventManagerBase.forUri(uri);
+//            System.out.print(" apply ");
+//            System.out.print(" diagnostic:");
+//            System.out.print(eventManager.isDiagnosticSyncRequired());
+//            System.out.print(" codeAction:");
+//            System.out.println(eventManager.isCodeActionSyncRequired());
+//            if (eventManager.isDiagnosticSyncRequired()){
+//                eventManager.requestAndShowCodeActions();
+//            }
 
-            if (eventManager.isDiagnosticSyncRequired()) {
+
+//            if (eventManager.isCodeActionSyncRequired()){
+//                try {
+//                    updateAnnotations(holder, eventManager);
+//                } catch (ConcurrentModificationException e) {
+//                    // Todo - Add proper fix to handle concurrent modifications gracefully.
+//                    LOG.warn("Error occurred when updating LSP diagnostics due to concurrent modifications.", e);
+//                } catch (Throwable t) {
+//                    LOG.warn("Error occurred when updating LSP diagnostics.", t);
+//                }
+//            }
+            if (eventManager.isDiagnosticSyncRequired()){
                 try {
-                    System.out.println("Updating LSP diagnostics");
-                    System.out.println(virtualFile.getName());
                     createAnnotations(holder, eventManager);
                 } catch (ConcurrentModificationException e) {
                     // Todo - Add proper fix to handle concurrent modifications gracefully.
@@ -120,7 +146,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                     LOG.warn("Error occurred when updating LSP code actions.", t);
                 }
                 eventManager.requestAndShowCodeActions();
-            } else if (eventManager.isCodeActionSyncRequired()) {
+            } else {
                 try {
                     updateAnnotations(holder, eventManager);
                 } catch (ConcurrentModificationException e) {
@@ -130,6 +156,23 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                     LOG.warn("Error occurred when updating LSP diagnostics.", t);
                 }
             }
+
+
+//            createAnnotations(holder, eventManager);
+//            if (eventManager.isCodeActionSyncRequired()) {
+//                try {
+////                    System.out.println("Updating LSP code actions " + virtualFile.getName());
+//                    updateAnnotations(holder, eventManager);
+//                } catch (ConcurrentModificationException e) {
+//                    // Todo - Add proper fix to handle concurrent modifications gracefully.
+//                    LOG.warn("Error occurred when updating LSP diagnostics due to concurrent modifications.", e);
+//                } catch (Throwable t) {
+//                    LOG.warn("Error occurred when updating LSP diagnostics.", t);
+//                }
+//            }
+
+
+
         }
     }
 
@@ -138,11 +181,16 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         if (annotations == null) {
             return;
         }
+//        System.out.println("Updating annotations");
         annotations.forEach(annotation -> {
+            AnnotationBuilder builder = holder.newAnnotation(annotation.getSeverity(), annotation.getMessage());
             if (annotation.getQuickFixes() == null || annotation.getQuickFixes().isEmpty()) {
+//                System.out.println("No quick fixes " + annotation.getMessage());
+                int start = annotation.getStartOffset();
+                int end = annotation.getEndOffset();
+                builder.range(new TextRange(start, end)).create();
                 return;
             }
-            AnnotationBuilder builder = holder.newAnnotation(annotation.getSeverity(), annotation.getMessage());
             boolean range = true;
             for (Annotation.QuickFixInfo quickFixInfo : annotation.getQuickFixes()) {
                 if (range) {
@@ -153,10 +201,13 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
             }
             builder.create();
         });
+        eventManager.refreshAnnotations();
     }
 
     @Nullable
     protected Annotation createAnnotation(Editor editor, AnnotationHolder holder, Diagnostic diagnostic) {
+//        System.out.print("Creating annotation ");
+//        System.out.println(diagnostic.getMessage());
         final int start = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getStart());
         final int end = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getEnd());
         if (start >= end) {
@@ -173,6 +224,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     }
 
     private void createAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
+//        System.out.println("Creating annotations");
         final List<Diagnostic> diagnostics = eventManager.getDiagnostics();
         final Editor editor = eventManager.editor;
 

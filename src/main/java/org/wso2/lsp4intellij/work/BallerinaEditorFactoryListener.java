@@ -35,7 +35,7 @@ public class BallerinaEditorFactoryListener implements EditorFactoryListener {
             return;
         }
         VirtualFile file = FileDocumentManager.getInstance().getFile(event.getEditor().getDocument());
-        System.out.println("editorCreated: ");
+//        System.out.println("editorCreated: ");
         if (!balSourcesFound && project.equals(this.project) && isBalFile(file)) {
             doRegister(project);
             balSourcesFound = true;
@@ -43,7 +43,7 @@ public class BallerinaEditorFactoryListener implements EditorFactoryListener {
     }
 
     private static void doRegister(@NotNull Project project) {
-        System.out.println("doRegister: ");
+//        System.out.println("doRegister: ");
         List<String> args = new ArrayList<>();
         args.add("C:\\Program Files\\Ballerina\\distributions\\ballerina-2201.8.4\\bin\\bal.bat");
         args.add("start-language-server");
