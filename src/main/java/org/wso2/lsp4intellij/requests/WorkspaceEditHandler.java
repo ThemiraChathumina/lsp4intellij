@@ -69,7 +69,7 @@ public class WorkspaceEditHandler {
 
     public static void applyEdit(PsiElement elem, String newName, UsageInfo[] infos,
                                  RefactoringElementListener listener, List<VirtualFile> openedEditors) {
-        System.out.println("WorkspaceEditHandler.applyEdit");
+//        System.out.println("WorkspaceEditHandler.applyEdit");
         Map<String, List<TextEdit>> edits = new HashMap<>();
         if (elem instanceof LSPPsiElement) {
             LSPPsiElement lspElem = (LSPPsiElement) elem;
@@ -115,7 +115,7 @@ public class WorkspaceEditHandler {
      * @return True if everything was applied, false otherwise
      */
     public static boolean applyEdit(WorkspaceEdit edit, String name, List<VirtualFile> toClose) {
-        System.out.println("WorkspaceEditHandler.applyEdit 11");
+//        System.out.println("WorkspaceEditHandler.applyEdit 11");
         final String newName = (name != null) ? name : "LSP edits";
         if (edit != null) {
             Map<String, List<TextEdit>> changes = edit.getChanges();

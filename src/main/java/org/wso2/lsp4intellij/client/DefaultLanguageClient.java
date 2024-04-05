@@ -47,6 +47,7 @@ import org.eclipse.lsp4j.WorkDoneProgressNotification;
 import org.eclipse.lsp4j.WorkspaceFolder;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.jetbrains.annotations.NotNull;
+import org.wso2.lsp4intellij.client.languageserver.wrapper.LanguageServerWrapper;
 import org.wso2.lsp4intellij.editor.EditorEventManagerBase;
 import org.wso2.lsp4intellij.requests.WorkspaceEditHandler;
 import org.wso2.lsp4intellij.utils.ApplicationUtils;
@@ -85,8 +86,8 @@ public class DefaultLanguageClient implements LanguageClient {
 
     @Override
     public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
-        System.out.println("Apply edit");
-        System.out.println(params);
+//        System.out.println("Apply edit");
+//        System.out.println(params);
         boolean response = WorkspaceEditHandler.applyEdit(params.getEdit(), "LSP edits");
         return CompletableFuture.supplyAsync(() -> new ApplyWorkspaceEditResponse(response));
     }
@@ -336,7 +337,14 @@ public class DefaultLanguageClient implements LanguageClient {
                 title = progressNotificationItems.get(token).getFirst();
             }
         }
-        String extension = ((ServerWrapperBaseClientContext) context).getWrapper().serverDefinition.ext;
+        String extension = null;
+        if (context instanceof ServerWrapperBaseClientContext) {
+            ServerWrapperBaseClientContext serverContext = (ServerWrapperBaseClientContext) context;
+            LanguageServerWrapper wrapper = serverContext.getWrapper();
+            if (wrapper != null && wrapper.serverDefinition != null) {
+                extension = wrapper.serverDefinition.ext;
+            }
+        }
         if (extension != null) {
             title = " [" + extension + " extension" + "] " + title;
         }

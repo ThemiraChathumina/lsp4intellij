@@ -992,6 +992,7 @@ public class EditorEventManager {
 
         StringBuilder s = new StringBuilder();
         String documentText = editor.getDocument().getText();
+        System.out.println(offset);
         for (int i = 0; i < offset; i++) {
             char singleLetter = documentText.charAt(offset - i - 1);
             if (delimiters.contains(String.valueOf(singleLetter))) {
@@ -1478,7 +1479,7 @@ public class EditorEventManager {
                     });
                 } else if (element.isRight()) {
                     CodeAction codeAction = element.getRight();
-                    System.out.println(codeAction);
+//                    System.out.println(codeAction);
                     List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
                     annotations.forEach(annotation -> {
                         int start = annotation.getStartOffset();
