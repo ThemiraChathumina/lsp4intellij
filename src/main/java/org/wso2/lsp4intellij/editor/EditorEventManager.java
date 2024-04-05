@@ -903,7 +903,8 @@ public class EditorEventManager {
 
     @SuppressWarnings("WeakerAccess")
     public LookupElementBuilder addCompletionInsertHandlers(CompletionItem item, LookupElementBuilder builder, String lookupString) {
-
+        System.out.println("completion item: ");
+        System.out.println(item);
         String label = item.getLabel();
         Command command = item.getCommand();
         List<TextEdit> addTextEdits = item.getAdditionalTextEdits();
@@ -1000,7 +1001,7 @@ public class EditorEventManager {
             }
             s.append(singleLetter);
         }
-        return "";
+        return s.reverse().toString();
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -1012,7 +1013,9 @@ public class EditorEventManager {
         while (varMatcher.find()) {
             variables.add(new SnippetVariable(varMatcher.group(), varMatcher.start(), varMatcher.end()));
         }
-
+        if (variables.isEmpty()) {
+            return;
+        }
         variables.sort(Comparator.comparingInt(o -> o.startIndex));
         final String[] finalInsertText = {insertText};
         variables.forEach(var -> finalInsertText[0] = finalInsertText[0].replace(var.lspSnippetText, "$"));
@@ -1040,9 +1043,7 @@ public class EditorEventManager {
             template.addTextSegment(splitInsertText[splitInsertText.length - 1]);
         }
         template.setInline(true);
-        if (variables.size() > 0) {
-            EditorModificationUtil.moveCaretRelatively(editor, -template.getTemplateText().length());
-        }
+        EditorModificationUtil.moveCaretRelatively(editor, -template.getTemplateText().length());
         TemplateManager.getInstance(getProject()).startTemplate(editor, template);
     }
 
