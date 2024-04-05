@@ -209,9 +209,11 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 //        System.out.print("Creating annotation ");
 //        System.out.println(diagnostic.getMessage());
         final int start = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getStart());
-        final int end = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getEnd());
-        if (start >= end) {
+        int end = DocumentUtils.LSPPosToOffset(editor, diagnostic.getRange().getEnd());
+        if (start > end) {
             return null;
+        } else if (start == end) {
+            end +=1;
         }
         final TextRange range = new TextRange(start, end);
 

@@ -174,6 +174,7 @@ public class DefaultRequestManager implements RequestManager {
 
     @Override
     public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
+        System.out.println("applying workspace edits");
         return client.applyEdit(params);
     }
 
@@ -306,6 +307,8 @@ public class DefaultRequestManager implements RequestManager {
     public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
         if (checkStatus()) {
             try {
+                System.out.println("executeCommand: " + params);
+                System.out.println("serverCapabilities: " + serverCapabilities.getExecuteCommandProvider());
                 return serverCapabilities.getExecuteCommandProvider() != null ? workspaceService.executeCommand(params) : null;
             } catch (Exception e) {
                 crashed(e);

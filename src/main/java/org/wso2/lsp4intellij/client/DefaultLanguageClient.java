@@ -75,19 +75,18 @@ public class DefaultLanguageClient implements LanguageClient {
     @NotNull
     private final ClientContext context;
 
-    private final String extension;
-
     protected boolean isModal = false;
 
     private final HashMap<String, Tuple2<String, String>> progressNotificationItems = new HashMap<>();
 
-    public DefaultLanguageClient(@NotNull ClientContext context, String extension) {
+    public DefaultLanguageClient(@NotNull ClientContext context) {
         this.context = context;
-        this.extension = extension;
     }
 
     @Override
     public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
+        System.out.println("Apply edit");
+        System.out.println(params);
         boolean response = WorkspaceEditHandler.applyEdit(params.getEdit(), "LSP edits");
         return CompletableFuture.supplyAsync(() -> new ApplyWorkspaceEditResponse(response));
     }
@@ -337,6 +336,7 @@ public class DefaultLanguageClient implements LanguageClient {
                 title = progressNotificationItems.get(token).getFirst();
             }
         }
+        String extension = ((ServerWrapperBaseClientContext) context).getWrapper().serverDefinition.ext;
         if (extension != null) {
             title = " [" + extension + " extension" + "] " + title;
         }

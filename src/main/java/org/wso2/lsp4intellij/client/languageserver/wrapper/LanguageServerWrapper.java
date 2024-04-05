@@ -529,7 +529,7 @@ public class LanguageServerWrapper {
                     launcherFuture = launcher.startListening();
                 } else {
 //                    System.out.println(initializeResult);
-                    client = new DefaultLanguageClient(new ServerWrapperBaseClientContext(this),ext);
+                    client = new DefaultLanguageClient(new ServerWrapperBaseClientContext(this));
                     Launcher<LanguageServer> launcher = Launcher
                             .createLauncher(client, LanguageServer.class, inputStream, outputStream, executorService,
                                     messageHandler);

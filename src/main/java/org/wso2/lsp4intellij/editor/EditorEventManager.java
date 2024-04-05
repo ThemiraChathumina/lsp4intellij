@@ -1210,17 +1210,13 @@ public class EditorEventManager {
                 return wrapper.getRequestManager().executeCommand(params);
             }).filter(Objects::nonNull).forEach(f -> {
                 try {
-                    var x = f.get(getTimeout(EXECUTE_COMMAND), TimeUnit.MILLISECONDS);
-                    System.out.println(x);
-                    System.out.println("executeCommands success");
+                    f.get(getTimeout(EXECUTE_COMMAND), TimeUnit.MILLISECONDS);
                     wrapper.notifySuccess(Timeouts.EXECUTE_COMMAND);
                 } catch (TimeoutException te) {
                     LOG.warn(te);
-                    System.out.println("executeCommands TimeoutException");
                     wrapper.notifyFailure(Timeouts.EXECUTE_COMMAND);
                 } catch (JsonRpcException | ExecutionException | InterruptedException e) {
                     LOG.warn(e);
-                    System.out.println("executeCommands JsonRpcException | ExecutionException | InterruptedException");
                     wrapper.crashed(e);
                 }
             });

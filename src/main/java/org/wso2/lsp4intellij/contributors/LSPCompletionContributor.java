@@ -69,7 +69,7 @@ class LSPCompletionContributor extends CompletionContributor {
         EditorEventManager manager = EditorEventManagerBase.forEditor(editor);
         if (manager != null) {
             String prefix = manager.getCompletionPrefix(editor, offset);
-
+            System.out.println("Prefix: " + prefix);
             provider.addCompletionVariants(parameters, new ProcessingContext(), result.withPrefixMatcher(new PlainPrefixMatcher(prefix)));
             if (result.isStopped()) {
                 return;
