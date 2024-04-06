@@ -54,7 +54,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                                id="LSPSymbolContributor"/>
 
         <!-- needed for renaming -->
-<!--        <renameHandler implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameHandler" id="LSPRenameHandler" order="first"/>-->
+        <renameHandler implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameHandler" id="LSPRenameHandler" order="first"/>
         <renamePsiElementProcessor implementation="org.wso2.lsp4intellij.contributors.rename.LSPRenameProcessor" id="LSPRenameProcessor" order="first"/>
 
 
@@ -63,7 +63,7 @@ see also jetbrains documentation: https://plugins.jetbrains.com/docs/intellij/pl
                             />
 
 <!--         needed for folding support -->
-<!--        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" order="first" />-->
+        <lang.foldingBuilder language="Ballerina" implementationClass="org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider" id="LSPFoldingRangeProvider" />
     </extensions>
 
     <actions>

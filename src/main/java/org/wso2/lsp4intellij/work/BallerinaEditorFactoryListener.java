@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.wso2.lsp4intellij.IntellijLanguageClient;
 import org.wso2.lsp4intellij.client.languageserver.serverdefinition.ProcessBuilderServerDefinition;
+import org.wso2.lsp4intellij.contributors.LSPFoldingRangeProvider;
 
 import java.io.File;
 import java.util.ArrayList;

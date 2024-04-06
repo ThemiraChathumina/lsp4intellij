@@ -903,8 +903,8 @@ public class EditorEventManager {
 
     @SuppressWarnings("WeakerAccess")
     public LookupElementBuilder addCompletionInsertHandlers(CompletionItem item, LookupElementBuilder builder, String lookupString) {
-        System.out.println("completion item: ");
-        System.out.println(item);
+//        System.out.println("completion item: ");
+//        System.out.println(item);
         String label = item.getLabel();
         Command command = item.getCommand();
         List<TextEdit> addTextEdits = item.getAdditionalTextEdits();
@@ -987,22 +987,18 @@ public class EditorEventManager {
 
     @NotNull
     public String getCompletionPrefix(Editor editor, int offset) {
-        List<String> delimiters = new ArrayList<>(this.completionTriggers);
-        // add whitespace as delimiter, otherwise forced completion does not work
-        delimiters.addAll(Arrays.asList(" \t\n\r".split("")));
-
-        StringBuilder s = new StringBuilder();
+        String delimiterString = String.join("", this.completionTriggers) + " \t\n\r";
         String documentText = editor.getDocument().getText();
-        System.out.println(offset);
-        for (int i = 0; i < offset; i++) {
-            char singleLetter = documentText.charAt(offset - i - 1);
-            if (delimiters.contains(String.valueOf(singleLetter))) {
-                return s.reverse().toString();
+        int lastIndex = -1;
+        for (char delimiter : delimiterString.toCharArray()) {
+            int index = documentText.substring(0, offset).lastIndexOf(delimiter);
+            if (index > lastIndex) {
+                lastIndex = index;
             }
-            s.append(singleLetter);
         }
-        return s.reverse().toString();
+        return lastIndex >= 0 ? documentText.substring(lastIndex + 1, offset) : documentText.substring(0, offset);
     }
+
 
     @SuppressWarnings("WeakerAccess")
     public void prepareAndRunSnippet(String insertText) {

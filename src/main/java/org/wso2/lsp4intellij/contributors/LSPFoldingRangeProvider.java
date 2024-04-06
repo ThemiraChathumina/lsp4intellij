@@ -15,12 +15,14 @@
  */
 package org.wso2.lsp4intellij.contributors;
 
+import com.esotericsoftware.minlog.Log;
 import com.intellij.lang.ASTNode;
 import com.intellij.lang.folding.CustomFoldingBuilder;
 import com.intellij.lang.folding.FoldingDescriptor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
@@ -35,6 +37,10 @@ import org.wso2.lsp4intellij.requests.Timeouts;
 import org.wso2.lsp4intellij.utils.DocumentUtils;
 import org.wso2.lsp4intellij.utils.FileUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -49,6 +55,10 @@ public class LSPFoldingRangeProvider extends CustomFoldingBuilder {
     private Editor editor;
     private LanguageServerWrapper wrapper;
 
+    private static String collapseText = "...";
+
+    private String collapseTextPrev = collapseText;
+
     @Override
     protected void buildLanguageFoldRegions(@NotNull List<FoldingDescriptor> descriptors, @NotNull PsiElement root, @NotNull Document document, boolean quick) {
         // if quick flag is set, we do nothing here
@@ -62,7 +72,11 @@ public class LSPFoldingRangeProvider extends CustomFoldingBuilder {
             wrapper = LanguageServerWrapper.forVirtualFile(psiFile.getVirtualFile(), root.getProject());
         }
 
-        String url = root.getContainingFile().getVirtualFile().getUrl();
+        URI fileUri = root.getContainingFile().getVirtualFile().toNioPath().toUri();
+
+        // Convert the URI to a URL string.
+        String url = fileUri.toString();
+        System.out.println(url);
         TextDocumentIdentifier textDocumentIdentifier = new TextDocumentIdentifier(url);
         FoldingRangeRequestParams params = new FoldingRangeRequestParams(textDocumentIdentifier);
         CompletableFuture<List<FoldingRange>> future = wrapper.getRequestManager().foldingRange(params);
@@ -73,16 +87,25 @@ public class LSPFoldingRangeProvider extends CustomFoldingBuilder {
                 wrapper.notifySuccess(Timeouts.FOLDING);
 
                 for (FoldingRange foldingRange : foldingRanges) {
-                    int start = getStartOffset(foldingRange, document);
-                    int end = getEndOffset(foldingRange, document);
+//                    int start = getStartOffset(foldingRange, document);
+//                    int end = getEndOffset(foldingRange, document);
+                    int start = calculateStartOffset(root, foldingRange.getStartLine(), foldingRange.getStartCharacter());
+                    int end = document.getLineEndOffset(foldingRange.getEndLine());
+                    System.out.println(root.getContainingFile().getVirtualFile().getName());
+                    System.out.println("Start: " + start + " End: " + end);
                     if (end - start <= 0) {
                         continue;
                     }
-                    if (foldingRange.getCollapsedText() != null) {
-                        descriptors.add(new FoldingDescriptor(root.getNode(), new TextRange(start, end), null, foldingRange.getCollapsedText()));
+                    if (collapseText == null){
+                        collapseText = foldingRange.getCollapsedText();
+                    }
+                    if (collapseText != null) {
+                        descriptors.add(new FoldingDescriptor(root.getNode(), new TextRange(start, end), null, collapseText));
+                        System.out.println(descriptors);
                     } else {
                         descriptors.add(new FoldingDescriptor(root.getNode(), new TextRange(start, end)));
                     }
+                    collapseText = collapseTextPrev;
                 }
             } catch (TimeoutException | InterruptedException e) {
                 LOG.warn(e);
@@ -103,11 +126,16 @@ public class LSPFoldingRangeProvider extends CustomFoldingBuilder {
         return DocumentUtils.LSPPosToOffset(editor, new Position(foldingRange.getEndLine(), foldingRange.getEndCharacter()));
     }
 
+
     private int getStartOffset(@NotNull FoldingRange foldingRange, @NotNull Document document) {
         // StartCharacter is optional. When missing, it should be set to the length of the start line.
         if (foldingRange.getStartCharacter() == null) {
             return document.getLineEndOffset(foldingRange.getStartLine());
         } else {
+            System.out.println("lsp offfset ");
+            System.out.println(foldingRange.getStartLine());
+            System.out.println(foldingRange.getStartCharacter());
+            System.out.println(DocumentUtils.LSPPosToOffset(editor, new Position(foldingRange.getStartLine(), foldingRange.getStartCharacter())));
             return DocumentUtils.LSPPosToOffset(editor, new Position(foldingRange.getStartLine(), foldingRange.getStartCharacter()));
         }
     }
@@ -120,5 +148,54 @@ public class LSPFoldingRangeProvider extends CustomFoldingBuilder {
     @Override
     protected boolean isRegionCollapsedByDefault(@NotNull ASTNode node) {
         return false;
+    }
+
+
+    public int calculateStartOffset(@NotNull PsiElement root, int lineNumber, int charNumber) {
+        Document document = FileDocumentManager.getInstance().getDocument(root.getContainingFile().getVirtualFile());
+
+        if (document == null) {
+            Log.warn("Document cannot be null");
+            return -1;
+        }
+
+        int lineStartOffset = document.getLineStartOffset(lineNumber);
+        int lineEndOffset = document.getLineEndOffset(lineNumber);
+
+        // Ensure the character number is within the bounds of the line.
+        int offset = lineStartOffset + charNumber; // Adjusted for 0-based index
+
+        int offsetCopy = offset;
+
+        // Check if the character at the offset is a '{'. If not, move forward until '{' is found or the line ends.
+        while (offset < lineEndOffset) {
+            char currentChar = document.getCharsSequence().charAt(offset);
+            if (currentChar == '{') {
+                if (document.getCharsSequence().charAt(offset+1) == '|'){
+                    collapseText = "{|...";
+                } else {
+                    collapseText = "{...";
+                }
+                return offset;
+            }
+            offset++;
+        }
+
+        int offsetCopy1 = offsetCopy;
+
+        while (offsetCopy1 < lineEndOffset) {
+            // Ensure we don't exceed the document's bounds when checking the sequence "return"
+            if (offsetCopy1 + 5 < lineEndOffset) {
+                CharSequence sequence = document.getCharsSequence().subSequence(offsetCopy1, offsetCopy1 + 6);
+                if (sequence.toString().equals("return")) {
+                    return offsetCopy1 + 6; // Move the offset to the character after "return"
+                }
+            }
+            offsetCopy1++; // Move to the next character
+        }
+
+
+
+        return lineEndOffset;
     }
 }
