@@ -35,16 +35,20 @@ import org.wso2.lsp4intellij.client.languageserver.serverdefinition.LanguageServ
 import org.wso2.lsp4intellij.contributors.icon.LSPDefaultIconProvider;
 import org.wso2.lsp4intellij.contributors.icon.LSPIconProvider;
 import org.wso2.lsp4intellij.contributors.label.LSPDefaultLabelProvider;
-import org.wso2.lsp4intellij.extensions.LSPExtensionManager;
 import org.wso2.lsp4intellij.contributors.label.LSPLabelProvider;
+import org.wso2.lsp4intellij.extensions.LSPExtensionManager;
 
-import javax.swing.*;
-import javax.swing.event.HyperlinkEvent;
-import javax.swing.text.html.HTMLEditorKit;
 import java.awt.*;
 import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.Optional;
+
+import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.HTMLEditorKit;
+import javax.swing.text.html.StyleSheet;
 
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.writeAction;
 
@@ -80,12 +84,37 @@ public final class GUIUtils {
     public static Hint createAndShowEditorHint(Editor editor, String string, Point point, short constraint, int flags) {
         JTextPane textPane = new JTextPane();
         textPane.setEditorKit(new HTMLEditorKit());
+
+        string = string.replace("<code>", "<code>&nbsp;")
+                .replace("<p>", "<p style=\"font-family: Segoe UI Semibold; font-size: 11px;\">")
+                .replaceAll("(?<!\\n)</code>", "&nbsp;</code>");
+
         textPane.setText(string);
+        HTMLDocument doc = (HTMLDocument) textPane.getDocument();
+        StyleSheet styleSheet = doc.getStyleSheet();
+        styleSheet.addRule("p { font-family: " + "Segoe UI Semibold" + "; font-size: 11px; }");
+        styleSheet.addRule("code { font-family: " + "Arial" + "; font-weight: bold; font-size: 11px;  }");
+
+        Color bodyFontColor = styleSheet.getStyle("body").getAttribute(StyleConstants.Foreground) instanceof Color ?
+                (Color) styleSheet.getStyle("body").getAttribute(StyleConstants.Foreground) : Color.BLACK;
+
+        Color inverseColor = new Color(255 - bodyFontColor.getRed(),
+                255 - bodyFontColor.getGreen(),
+                255 - bodyFontColor.getBlue()).darker();
+
+        String hexColor =
+                String.format("#%02x%02x%02x", inverseColor.getRed(), inverseColor.getGreen(), inverseColor.getBlue());
+        styleSheet.addRule("code { background-color: " + hexColor + "; }");
+
         int width = textPane.getPreferredSize().width;
         if (width > 600) {
-            // max-width does not seem to be supported, so use this rather ugly hack...
-            textPane.setText(string.replace("<style>", "<style>p {width: 600px}\n"));
+            styleSheet.addRule("p { width: 600px; }");
         }
+
+        String text = textPane.getText();
+        textPane.setText("");
+        textPane.setText(text);
+
         textPane.setEditable(false);
         textPane.addHyperlinkListener(e -> {
             if ((e.getEventType() == HyperlinkEvent.EventType.ACTIVATED)
