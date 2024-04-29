@@ -44,6 +44,7 @@ import org.wso2.lsp4intellij.contributors.psi.LSPPsiElement;
 import org.wso2.lsp4intellij.editor.EditorEventManager;
 import org.wso2.lsp4intellij.editor.EditorEventManagerBase;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.intellij.openapi.command.impl.StartMarkAction.START_MARK_ACTION_KEY;
@@ -52,6 +53,10 @@ import static com.intellij.openapi.command.impl.StartMarkAction.START_MARK_ACTIO
  * The LSP based rename handler implementation.
  */
 public class LSPRenameHandler implements RenameHandler {
+
+    private List<VirtualFile> filesToClose = new ArrayList<>();
+
+    private boolean same = true;
 
     @Override
     public void invoke(@NotNull Project project, @NotNull PsiElement[] elements, DataContext dataContext) {
@@ -88,10 +93,17 @@ public class LSPRenameHandler implements RenameHandler {
                         public void pass(PsiElement element) {
                             MemberInplaceRenamer renamer = createMemberRenamer(element,
                                     (PsiNameIdentifierOwner) elementToRename, editor);
-                            boolean startedRename = renamer.performInplaceRename();
-                            if (!startedRename) {
+                            if (same) {
+                                renamer.performInplaceRename();
+                            } else {
+                                same = true;
                                 performDialogRename(editor);
                             }
+//                            boolean startedRename = renamer.performInplaceRename();
+//                            if (!startedRename) {
+//                                performDialogRename(editor);
+//                            }
+//                            performDialogRename(editor);
                         }
                     });
                     return null;
@@ -145,17 +157,26 @@ public class LSPRenameHandler implements RenameHandler {
                     editor.getProject(), "Enter new name: ", "Rename", Messages.getQuestionIcon(), "",
                     new NonEmptyInputValidator());
             if (renameTo != null && !renameTo.equals("")) {
-                manager.rename(renameTo);
+                manager.rename(renameTo,filesToClose);
             }
         }
     }
 
     private LSPPsiElement getElementAtOffset(EditorEventManager eventManager, int offset) {
-        Pair<List<PsiElement>, List<VirtualFile>> refResponse = eventManager.references(offset, true, false);
+        Pair<List<PsiElement>, List<VirtualFile>> refResponse = eventManager.references(offset, true, true);
         List<PsiElement> refs = refResponse.getFirst();
         if (refs == null || refs.isEmpty()) {
             return null;
         }
+
+        String uri = refs.get(0).getContainingFile().getVirtualFile().getUrl();
+        for (PsiElement element: refs) {
+            if (!uri.equals(element.getContainingFile().getVirtualFile().getUrl())) {
+                filesToClose.add(element.getContainingFile().getVirtualFile());
+                same = false;
+            }
+        }
+
 
         PsiElement curElement = refs.stream()
                 .filter(e -> e.getTextRange().getStartOffset() <= offset && offset <= e.getTextRange().getEndOffset())

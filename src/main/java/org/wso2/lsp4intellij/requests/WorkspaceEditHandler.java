@@ -15,10 +15,14 @@
  */
 package org.wso2.lsp4intellij.requests;
 
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.command.UndoConfirmationPolicy;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileEditor.OpenFileDescriptor;
 import com.intellij.openapi.project.Project;
@@ -30,7 +34,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiElement;
 import com.intellij.refactoring.listeners.RefactoringElementListener;
 import com.intellij.usageView.UsageInfo;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.eclipse.lsp4j.InsertReplaceEdit;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ResourceOperation;
 import org.eclipse.lsp4j.TextDocumentEdit;
@@ -66,6 +72,8 @@ import static org.wso2.lsp4intellij.utils.DocumentUtils.toEither;
  */
 public class WorkspaceEditHandler {
     private static Logger LOG = Logger.getInstance(WorkspaceEditHandler.class);
+
+    private static final List<VirtualFile> filesToClose = new ArrayList<>();
 
     public static void applyEdit(PsiElement elem, String newName, UsageInfo[] infos,
                                  RefactoringElementListener listener, List<VirtualFile> openedEditors) {
@@ -153,10 +161,21 @@ public class WorkspaceEditHandler {
                 changes.forEach((key, lChanges) -> {
                     String uri = FileUtils.sanitizeURI(key);
 
+                    VirtualFile file = FileUtils.virtualFileFromURI(uri);
+
                     EditorEventManager manager = EditorEventManagerBase.forUri(uri);
+                    for (EditorEventManager mngr: EditorEventManagerBase.managersForUri(uri)) {
+                        if (mngr.editor.getProject() != null && !mngr.editor.isDisposed()) {
+                            manager = mngr;
+                            break;
+                        }
+                    }
                     if (manager != null) {
                         curProject[0] = manager.editor.getProject();
-                        toApply.add(manager.getEditsRunnable(Integer.MAX_VALUE, toEither(lChanges), newName, true));
+//                        toApply.add(manager.getEditsRunnable(Integer.MAX_VALUE, toEither(lChanges), newName, true));
+                        ApplicationManager.getApplication().runReadAction(() -> {
+                            toApply.add(getEditsRunnable(file, Integer.MAX_VALUE, toEither(lChanges), newName, true));
+                        });
                     } else {
                         toApply.add(manageUnopenedEditor(lChanges, uri, Integer.MAX_VALUE, openedEditors, curProject,
                                 newName));
@@ -172,6 +191,8 @@ public class WorkspaceEditHandler {
                     CommandProcessor.getInstance()
                             .executeCommand(curProject[0], runnable, name, "LSPPlugin", UndoConfirmationPolicy.DEFAULT,
                                     false);
+//                    toClose.addAll(filesToClose);
+//                    filesToClose.clear();
                     openedEditors.forEach(f -> FileEditorManager.getInstance(curProject[0]).closeFile(f));
                     toClose.forEach(f -> FileEditorManager.getInstance(curProject[0]).closeFile(f));
                 }));
@@ -180,6 +201,82 @@ public class WorkspaceEditHandler {
         } else {
             return false;
         }
+    }
+
+    public static Runnable getEditsRunnable(VirtualFile file, int version,
+                                            List<Either<TextEdit, InsertReplaceEdit>> edits, String name,
+                                            boolean setCaret) {
+        Document document = null;
+
+
+            document = FileDocumentManager.getInstance().getDocument(file);
+
+
+        Project[] projects = ProjectManager.getInstance().getOpenProjects();
+        //Infer the project from the uri
+        Project project = Stream.of(projects)
+                .map(p -> new ImmutablePair<>(FileUtils.VFSToURI(ProjectUtil.guessProjectDir(p)), p))
+                .filter(p -> file.getUrl().startsWith(p.getLeft())).sorted(Collections.reverseOrder())
+                .map(ImmutablePair::getRight).findFirst().orElse(projects[0]);
+
+        // create a light editor
+        Document finalDocument = document;
+        return () ->  ApplicationManager.getApplication().runWriteAction(() -> {
+            Editor editor = EditorFactory.getInstance().createEditor(finalDocument, project);
+
+            List<EditorEventManager.LSPTextEdit> lspEdits = new ArrayList<>();
+            edits.forEach(edit -> {
+                if(edit.isLeft()) {
+                    String text = edit.getLeft().getNewText();
+                    Range range = edit.getLeft().getRange();
+                    if (range != null) {
+                        int start = DocumentUtils.LSPPosToOffset(editor, range.getStart());
+                        int end = DocumentUtils.LSPPosToOffset(editor, range.getEnd());
+                        lspEdits.add(new EditorEventManager.LSPTextEdit(text, start, end));
+                    }
+                } else if(edit.isRight()) {
+                    String text = edit.getRight().getNewText();
+                    Range range = edit.getRight().getInsert();
+
+                    if (range != null) {
+                        int start = DocumentUtils.LSPPosToOffset(editor, range.getStart());
+                        int end = DocumentUtils.LSPPosToOffset(editor, range.getEnd());
+                        lspEdits.add(new EditorEventManager.LSPTextEdit(text, start, end));
+                    } else if ((range = edit.getRight().getReplace()) != null) {
+                        int start = DocumentUtils.LSPPosToOffset(editor, range.getStart());
+                        int end = DocumentUtils.LSPPosToOffset(editor, range.getEnd());
+                        lspEdits.add(new EditorEventManager.LSPTextEdit(text, start, end));
+                    }
+                }
+            });
+
+            // Sort according to the start offset, in descending order.
+            Collections.sort(lspEdits);
+
+            lspEdits.forEach(edit -> {
+                String text = edit.getText();
+                int start = edit.getStartOffset();
+                int end = edit.getEndOffset();
+                if (StringUtils.isEmpty(text)) {
+                    finalDocument.deleteString(start, end);
+                } else {
+                    text = text.replace(DocumentUtils.WIN_SEPARATOR, DocumentUtils.LINUX_SEPARATOR);
+                    if (end >= 0) {
+                        if (end - start <= 0) {
+                            finalDocument.insertString(start, text);
+                        } else {
+                            finalDocument.replaceString(start, end, text);
+                        }
+                    } else if (start == 0) {
+                        finalDocument.setText(text);
+                    } else if (start > 0) {
+                        finalDocument.insertString(start, text);
+                    }
+                }
+//                System.out.println(finalDocument.getText());
+                FileDocumentManager.getInstance().saveDocument(finalDocument);
+            });
+        });
     }
 
     /**
@@ -219,5 +316,10 @@ public class WorkspaceEditHandler {
             runnable = manager.getEditsRunnable(version, toEither(edits), name, true);
         }
         return runnable;
+    }
+
+    public static void setCloseFiles(List<VirtualFile> files) {
+        filesToClose.clear();
+        filesToClose.addAll(files);
     }
 }

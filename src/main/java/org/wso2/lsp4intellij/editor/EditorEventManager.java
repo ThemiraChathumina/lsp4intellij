@@ -18,18 +18,26 @@ package org.wso2.lsp4intellij.editor;
 import com.intellij.codeInsight.completion.InsertionContext;
 import com.intellij.codeInsight.daemon.DaemonCodeAnalyzer;
 import com.intellij.codeInsight.hint.HintManager;
+import com.intellij.codeInsight.intention.impl.IntentionHintComponent;
+import com.intellij.codeInsight.intention.impl.ShowIntentionActionsHandler;
 import com.intellij.codeInsight.lookup.AutoCompletionPolicy;
 import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.codeInsight.template.TemplateManager;
 import com.intellij.codeInsight.template.impl.TemplateImpl;
 import com.intellij.codeInsight.template.impl.TextExpression;
+import com.intellij.designer.model.QuickFix;
+import com.intellij.ide.DataManager;
 import com.intellij.lang.Language;
 import com.intellij.lang.LanguageDocumentation;
 import com.intellij.lang.annotation.Annotation;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.AnAction;
+import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.actionSystem.IdeActions;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.*;
@@ -78,6 +86,8 @@ import org.wso2.lsp4intellij.utils.GUIUtils;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
@@ -94,6 +104,7 @@ import static org.wso2.lsp4intellij.editor.EditorEventManagerBase.*;
 import static org.wso2.lsp4intellij.requests.Timeout.getTimeout;
 import static org.wso2.lsp4intellij.requests.Timeouts.*;
 import static org.wso2.lsp4intellij.utils.ApplicationUtils.*;
+import static org.wso2.lsp4intellij.utils.ApplicationUtils.computableWriteAction;
 import static org.wso2.lsp4intellij.utils.DocumentUtils.toEither;
 import static org.wso2.lsp4intellij.utils.GUIUtils.createAndShowEditorHint;
 
@@ -145,7 +156,7 @@ public class EditorEventManager {
 
     private List<Tuple3<HighlightSeverity,TextRange,LSPCodeActionFix>> silentAnnotations = new ArrayList<>();
 
-    private boolean annotationsRefreshed = false;
+    public boolean annotationsRefreshed = false;
 
     //Todo - Revisit arguments order and add remaining listeners
     public EditorEventManager(Editor editor, DocumentListener documentListener, EditorMouseListener mouseListener,
@@ -678,8 +689,8 @@ public class EditorEventManager {
         });
     }
 
-    public void rename(String renameTo) {
-        rename(renameTo, editor.getCaretModel().getCurrentCaret().getOffset());
+    public void rename(String renameTo, List<VirtualFile> filesToClose) {
+        rename(renameTo, editor.getCaretModel().getCurrentCaret().getOffset(), filesToClose);
     }
 
     /**
@@ -687,7 +698,13 @@ public class EditorEventManager {
      *
      * @param renameTo The new name
      */
-    public void rename(String renameTo, int offset) {
+    public void rename(String renameTo, int offset, List<VirtualFile> filesToClose) {
+//        List<VirtualFile> openedFiles = Arrays.asList(FileEditorManager.getInstance(project).getOpenFiles());
+//        filesToClose.removeAll(openedFiles);
+//        filesToClose.forEach(f -> {
+//            OpenFileDescriptor descriptor = new OpenFileDescriptor(project, f);
+//            computableWriteAction(() -> FileEditorManager.getInstance(project).openTextEditor(descriptor, false));
+//        });
         pool(() -> {
             if (editor.isDisposed()) {
                 return;
@@ -697,6 +714,7 @@ public class EditorEventManager {
             CompletableFuture<WorkspaceEdit> request = wrapper.getRequestManager().rename(params);
             if (request != null) {
                 request.thenAccept(res -> {
+//                    WorkspaceEditHandler.setCloseFiles(filesToClose);
                     WorkspaceEditHandler
                             .applyEdit(res, "Rename to " + renameTo, new ArrayList<>(LSPRenameProcessor.getEditors()));
                     LSPRenameProcessor.clearEditors();
@@ -1261,6 +1279,7 @@ public class EditorEventManager {
             return;
         }
         if (event.getDocument() == editor.getDocument()) {
+            silentAnnotations.clear();
             documentEventManager.documentChanged(event);
         } else {
             LOG.error("Wrong document for the EditorEventManager");
@@ -1436,6 +1455,10 @@ public class EditorEventManager {
                         int start = annotation.getStartOffset();
                         int end = annotation.getEndOffset();
                         if (start <= caretPos && end >= caretPos) {
+                            List<Annotation.QuickFixInfo> quickFixes = annotation.getQuickFixes();
+                            if (quickFixes != null && !quickFixes.isEmpty()) {
+                                annotationsRefreshed = true;
+                            }
                             annotation.registerFix(new LSPCommandFix(FileUtils.editorToURIString(editor), command),
                                     new TextRange(start, end));
                             codeActionSyncRequired = true;
@@ -1455,6 +1478,10 @@ public class EditorEventManager {
                         int start = annotation.getStartOffset();
                         int end = annotation.getEndOffset();
                         if (start <= caretPos && end >= caretPos) {
+                            List<Annotation.QuickFixInfo> quickFixes = annotation.getQuickFixes();
+                            if (quickFixes != null && !quickFixes.isEmpty()) {
+                                annotationsRefreshed = true;
+                            }
                             annotation.registerFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor),
                                     codeAction), new TextRange(start, end));
                             codeActionSyncRequired = true;
@@ -1466,6 +1493,7 @@ public class EditorEventManager {
                         annotations.remove(annotWithCodeAction);
                         annotations.add(0, annotWithCodeAction);
                     }
+
 
                     // If the code actions does not have a diagnostics context, creates an intention action for
                     // the current line.
@@ -1489,6 +1517,8 @@ public class EditorEventManager {
                                             new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction)
                                     );
                             silentAnnotations.add(sAnnotation);
+                        } else {
+                            annotationsRefreshed = true;
                         }
                         codeActionSyncRequired = true;
                     }
@@ -1497,9 +1527,17 @@ public class EditorEventManager {
             // If code actions are updated, forcefully triggers the inspection tool.
             if (codeActionSyncRequired) {
                 // double-delay the update to ensure that the code analyzer finishes.
+//                System.out.println("code");
+//                invokeLater(this::updateErrorAnnotations);
+                //                    if (editor.isDisposed()) {
+                //                        return;
+                //                    }
+                // dislpay code actions bulb
+                //                    editor.getSettings().setShowIntentionBulb(false);
+                //
+                //                    editor.getSettings().setShowIntentionBulb(true);
                 invokeLater(this::updateErrorAnnotations);
             }
-            annotationsRefreshed = false;
         });
     }
 
@@ -1508,6 +1546,7 @@ public class EditorEventManager {
      */
     private void updateErrorAnnotations() {
         computableReadAction(() -> {
+//            System.out.println("update");
             final PsiFile file = PsiDocumentManager.getInstance(project)
                     .getCachedPsiFile(editor.getDocument());
             if (file == null) {
@@ -1525,32 +1564,53 @@ public class EditorEventManager {
 
     public void refreshAnnotations() {
         if (!annotationsRefreshed) {
-            updateErrorAnnotations();
-            silentAnnotations.clear();
-            annotationsRefreshed = true;
+//            updateErrorAnnotations();
+            invokeLater(() -> {
+                annotationsRefreshed = true;
+//                System.out.println("refresh");
+                // move caret by 1
+//                LogicalPosition logicalPosition = editor.getCaretModel().getCurrentCaret().getLogicalPosition();
+//                editor.getCaretModel().getCurrentCaret().moveToLogicalPosition(new LogicalPosition(logicalPosition.line, logicalPosition.column + 1));
+                // move to previous position
+//                editor.getCaretModel().getCurrentCaret().moveToLogicalPosition(logicalPosition);
+                // trigger left arrow click on keyboard
+                KeyEvent keyEvent = new KeyEvent(editor.getContentComponent(), KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, KeyEvent.VK_LEFT, KeyEvent.CHAR_UNDEFINED);
+                editor.getContentComponent().dispatchEvent(keyEvent);
+                // trigger right arrow key press
+                keyEvent = new KeyEvent(editor.getContentComponent(), KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, KeyEvent.VK_RIGHT, KeyEvent.CHAR_UNDEFINED);
+                editor.getContentComponent().dispatchEvent(keyEvent);
+
+                annotationsRefreshed = false;
+            });
+
+        } else {
+            annotationsRefreshed = false;
         }
+        // trigger left click of mouse on the current caret position
+//        MouseEvent mouseEvent = new MouseEvent(editor.getContentComponent(), MouseEvent.MOUSE_PRESSED, System.currentTimeMillis(), 0, editor.getCaretModel().getCurrentCaret().getLogicalPosition().column, editor.getCaretModel().getCurrentCaret().getLogicalPosition().line, 1, false);
+//        editor.getContentComponent().dispatchEvent(mouseEvent);
     }
 
-    private static class LSPTextEdit implements Comparable<LSPTextEdit> {
+    public static class LSPTextEdit implements Comparable<LSPTextEdit> {
         private String text;
         private int startOffset;
         private int endOffset;
 
-        LSPTextEdit(String text, int start, int end) {
+        public LSPTextEdit(String text, int start, int end) {
             this.text = text;
             this.startOffset = start;
             this.endOffset = end;
         }
 
-        String getText() {
+        public String getText() {
             return text;
         }
 
-        int getStartOffset() {
+        public int getStartOffset() {
             return startOffset;
         }
 
-        int getEndOffset() {
+        public int getEndOffset() {
             return endOffset;
         }
 
