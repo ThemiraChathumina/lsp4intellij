@@ -60,6 +60,8 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     private static final Object RESULT = new Object();
     private static final HashMap<DiagnosticSeverity, HighlightSeverity> lspToIntellijAnnotationsMap = new HashMap<>();
 
+    private static final HashMap<VirtualFile,Boolean> problemFiles = new HashMap<>();
+
     static {
         lspToIntellijAnnotationsMap.put(DiagnosticSeverity.Error, HighlightSeverity.ERROR);
         lspToIntellijAnnotationsMap.put(DiagnosticSeverity.Warning, HighlightSeverity.WARNING);
@@ -142,6 +144,7 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
         }
 //        Project project = file.getProject();
 //        ProjectView.getInstance(project).refresh();
+        System.out.println("problemFiles: " + problemFiles);
     }
 
     private void updateSilentAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
@@ -167,12 +170,12 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
 
             VirtualFile file = FileUtils.virtualFileFromEditor(editor);
 //        System.out.println("file: " + file);
-            Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(file,0,0,new String[]{annotation.getMessage()});
-
-            ArrayList<Problem> problems = new ArrayList<>();
-            problems.add(problem);
-            WolfTheProblemSolver.getInstance(editor.getProject()).weHaveGotNonIgnorableProblems(file, problems);
-            System.out.println(WolfTheProblemSolver.getInstance(editor.getProject()).isProblemFile(file));
+//            Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(file,0,0,new String[]{annotation.getMessage()});
+//WolfTheProblemSolver.getInstance(editor.getProject()).queue(file);
+//            ArrayList<Problem> problems = new ArrayList<>();
+//            problems.add(problem);
+//            WolfTheProblemSolver.getInstance(editor.getProject()).weHaveGotNonIgnorableProblems(file, problems);
+//            System.out.println(WolfTheProblemSolver.getInstance(editor.getProject()).isProblemFile(file));
 
 
             if (annotation.getQuickFixes() == null || annotation.getQuickFixes().isEmpty()) {
@@ -212,15 +215,15 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
                 .create();
 
         // create a new problem and report it to wolf problem solver.
-        VirtualFile file = FileUtils.virtualFileFromEditor(editor);
-//        System.out.println("file: " + file);
-        Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(file,0,0,new String[]{diagnostic.getMessage()});
-
-        ArrayList<Problem> problems = new ArrayList<>();
-        problems.add(problem);
-        WolfTheProblemSolver.getInstance(editor.getProject()).weHaveGotNonIgnorableProblems(file, problems);
-        System.out.println(WolfTheProblemSolver.getInstance(editor.getProject()).isProblemFile(file));
-
+//        VirtualFile file = FileUtils.virtualFileFromEditor(editor);
+////        System.out.println("file: " + file);
+//        Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(file,0,0,new String[]{diagnostic.getMessage()});
+//
+//        ArrayList<Problem> problems = new ArrayList<>();
+//        problems.add(problem);
+//        WolfTheProblemSolver.getInstance(editor.getProject()).weHaveGotNonIgnorableProblems(file, problems);
+//        System.out.println(WolfTheProblemSolver.getInstance(editor.getProject()).isProblemFile(file));
+//        problemFiles.put(file, true);
 
         SmartList<Annotation> asList = (SmartList<Annotation>) holder;
         return asList.get(asList.size() - 1);
@@ -229,6 +232,24 @@ public class LSPAnnotator extends ExternalAnnotator<Object, Object> {
     private void createAnnotations(AnnotationHolder holder, EditorEventManager eventManager) {
         final List<Diagnostic> diagnostics = eventManager.getDiagnostics();
         final Editor editor = eventManager.editor;
+
+        VirtualFile file = FileUtils.virtualFileFromEditor(editor);
+        if (diagnostics == null || diagnostics.isEmpty()) {
+            problemFiles.put(file, false);
+        } else {
+            problemFiles.put(file, true);
+        }
+
+        for (VirtualFile virtualFile : problemFiles.keySet()) {
+            if (!problemFiles.get(virtualFile)) {
+                WolfTheProblemSolver.getInstance(editor.getProject()).clearProblems(virtualFile);
+            } else {
+//                Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(file,0,0,new String[]{""});
+//                ArrayList<Problem> problems = new ArrayList<>();
+//                problems.add(problem);
+//                WolfTheProblemSolver.getInstance(editor.getProject()).reportProblems(file, problems);
+            }
+        }
 
         List<Annotation> annotations = new ArrayList<>();
         diagnostics.forEach(d -> {

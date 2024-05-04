@@ -97,7 +97,7 @@ public class LSPRenameHandler implements RenameHandler {
                                 renamer.performInplaceRename();
                             } else {
                                 same = true;
-                                performDialogRename(editor);
+                                performDialogRename(editor, elementToRename.getText());
                             }
 //                            boolean startedRename = renamer.performInplaceRename();
 //                            if (!startedRename) {
@@ -119,7 +119,7 @@ public class LSPRenameHandler implements RenameHandler {
                 }
             }
         }
-        performDialogRename(editor);
+        performDialogRename(editor, elementToRename.getText());
         return null;
     }
 
@@ -150,13 +150,13 @@ public class LSPRenameHandler implements RenameHandler {
         return new LSPInplaceRenamer((PsiNamedElement) element, elementToRename, editor);
     }
 
-    private void performDialogRename(Editor editor) {
+    private void performDialogRename(Editor editor, String initialName) {
         EditorEventManager manager = EditorEventManagerBase.forEditor(editor);
         if (manager != null) {
             String renameTo = Messages.showInputDialog(
-                    editor.getProject(), "Enter new name: ", "Rename", Messages.getQuestionIcon(), "",
+                    editor.getProject(), "Enter new name: ", "Rename", Messages.getQuestionIcon(), initialName,
                     new NonEmptyInputValidator());
-            if (renameTo != null && !renameTo.equals("")) {
+            if (renameTo != null && !renameTo.isEmpty()) {
                 manager.rename(renameTo,filesToClose);
             }
         }

@@ -26,6 +26,12 @@ public class HighlightFilter implements Condition<VirtualFile> {
     public boolean value(VirtualFile virtualFile) {
         // get all opened virtual files
         VirtualFile[] openFiles = project.getBaseDir().getChildren();
+        //get editor for the virtual file
+        Editor editor = FileUtils.editorFromVirtualFile(virtualFile, project);
+        Problem problem = WolfTheProblemSolver.getInstance(editor.getProject()).convertToProblem(virtualFile,0,0,new String[]{""});
+        ArrayList<Problem> problems = new ArrayList<>();
+        problems.add(problem);
+        WolfTheProblemSolver.getInstance(editor.getProject()).reportProblems(virtualFile, problems);
         return true;
     }
 
