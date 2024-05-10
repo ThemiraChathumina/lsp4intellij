@@ -1410,97 +1410,97 @@ public class EditorEventManager {
     }
 
     public void requestAndShowCodeActions() {
-        invokeLater(() -> {
-            if (editor.isDisposed()) {
-                return;
-            }
-            if (annotations == null) {
-                annotations = new ArrayList<>();
-            }
-
-            // sends code action request.
-            int caretPos = editor.getCaretModel().getCurrentCaret().getOffset();
-            List<Either<Command, CodeAction>> codeActionResp = codeAction(caretPos);
-            if (codeActionResp == null || codeActionResp.isEmpty()) {
-                return;
-            }
-
-            codeActionResp.forEach(element -> {
-                if (element == null) {
-                    return;
-                }
-                if (element.isLeft()) {
-                    Command command = element.getLeft();
-                    Annotation annotWithCodeAction = null;
-                    for (Annotation annotation : annotations) {
-                        int start = annotation.getStartOffset();
-                        int end = annotation.getEndOffset();
-                        if (start <= caretPos && end >= caretPos) {
-                            annotation.registerFix(new LSPCommandFix(FileUtils.editorToURIString(editor), command),
-                                    new TextRange(start, end));
-                            codeActionSyncRequired = true;
-                            annotWithCodeAction = annotation;
-                            break;
-                        }
-                    }
-                    if (annotWithCodeAction != null) {
-                        annotations.remove(annotWithCodeAction);
-                        annotations.add(0, annotWithCodeAction);
-                    }
-                } else if (element.isRight()) {
-                    CodeAction codeAction = element.getRight();
-                    List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
-                    Annotation annotWithCodeAction = null;
-                    for (Annotation annotation : annotations) {
-                        int start = annotation.getStartOffset();
-                        int end = annotation.getEndOffset();
-                        if (start <= caretPos && end >= caretPos) {
-                            annotation.registerFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor),
-                                    codeAction), new TextRange(start, end));
-                            codeActionSyncRequired = true;
-                            annotWithCodeAction = annotation;
-                            break;
-                        }
-                    }
-                    if (annotWithCodeAction != null) {
-                        annotations.remove(annotWithCodeAction);
-                        annotations.add(0, annotWithCodeAction);
-                    }
-
-                    // If the code actions does not have a diagnostics context, creates an intention action for
-                    // the current line.
-                    if ((diagnosticContext == null || diagnosticContext.isEmpty()) && anonHolder != null && !codeActionSyncRequired) {
-                        // Calculates text range of the current line.
-                        int line = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
-                        int startOffset = editor.getDocument().getLineStartOffset(line);
-                        int endOffset = editor.getDocument().getLineEndOffset(line);
-                        TextRange range = new TextRange(startOffset, endOffset);
-                        boolean found = silentAnnotations.stream()
-                                .anyMatch(silentAnnotation ->
-                                        silentAnnotation.getSecond().getStartOffset() == startOffset &&
-                                        silentAnnotation.getSecond().getEndOffset() == endOffset &&
-                                        silentAnnotation.getThird().getText().equals(codeAction.getTitle())
-                                 );
-                        if (!found) {
-                            Tuple3<HighlightSeverity, TextRange, LSPCodeActionFix> sAnnotation =
-                                    new Tuple3<>(
-                                            HighlightSeverity.INFORMATION,
-                                            range,
-                                            new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction)
-                                    );
-                            silentAnnotations.add(sAnnotation);
-                        }
-                        codeActionSyncRequired = true;
-                    }
-                }
-            });
-            // If code actions are updated, forcefully triggers the inspection tool.
-            if (codeActionSyncRequired) {
-                // double-delay the update to ensure that the code analyzer finishes.
-                invokeLater(this::updateErrorAnnotations);
-            }
-            annotationsRefreshed = false;
-        });
+//        invokeLater(() -> {
+//            if (editor.isDisposed()) {
+//                return;
+//            }
+//            if (annotations == null) {
+//                annotations = new ArrayList<>();
+//            }
+//
+//            // sends code action request.
+//            int caretPos = editor.getCaretModel().getCurrentCaret().getOffset();
+//            List<Either<Command, CodeAction>> codeActionResp = codeAction(caretPos);
+//            if (codeActionResp == null || codeActionResp.isEmpty()) {
+//                return;
+//            }
+//
+//            codeActionResp.forEach(element -> {
+//                if (element == null) {
+//                    return;
+//                }
+//                if (element.isLeft()) {
+//                    Command command = element.getLeft();
+//                    Annotation annotWithCodeAction = null;
+//                    for (Annotation annotation : annotations) {
+//                        int start = annotation.getStartOffset();
+//                        int end = annotation.getEndOffset();
+//                        if (start <= caretPos && end >= caretPos) {
+//                            annotation.registerFix(new LSPCommandFix(FileUtils.editorToURIString(editor), command),
+//                                    new TextRange(start, end));
+//                            codeActionSyncRequired = true;
+//                            annotWithCodeAction = annotation;
+//                            break;
+//                        }
+//                    }
+//                    if (annotWithCodeAction != null) {
+//                        annotations.remove(annotWithCodeAction);
+//                        annotations.add(0, annotWithCodeAction);
+//                    }
+//                } else if (element.isRight()) {
+//                    CodeAction codeAction = element.getRight();
+//                    List<Diagnostic> diagnosticContext = codeAction.getDiagnostics();
+//                    Annotation annotWithCodeAction = null;
+//                    for (Annotation annotation : annotations) {
+//                        int start = annotation.getStartOffset();
+//                        int end = annotation.getEndOffset();
+//                        if (start <= caretPos && end >= caretPos) {
+//                            annotation.registerFix(new LSPCodeActionFix(FileUtils.editorToURIString(editor),
+//                                    codeAction), new TextRange(start, end));
+//                            codeActionSyncRequired = true;
+//                            annotWithCodeAction = annotation;
+//                            break;
+//                        }
+//                    }
+//                    if (annotWithCodeAction != null) {
+//                        annotations.remove(annotWithCodeAction);
+//                        annotations.add(0, annotWithCodeAction);
+//                    }
+//
+//                    // If the code actions does not have a diagnostics context, creates an intention action for
+//                    // the current line.
+//                    if ((diagnosticContext == null || diagnosticContext.isEmpty()) && anonHolder != null && !codeActionSyncRequired) {
+//                        // Calculates text range of the current line.
+//                        int line = editor.getCaretModel().getCurrentCaret().getLogicalPosition().line;
+//                        int startOffset = editor.getDocument().getLineStartOffset(line);
+//                        int endOffset = editor.getDocument().getLineEndOffset(line);
+//                        TextRange range = new TextRange(startOffset, endOffset);
+//                        boolean found = silentAnnotations.stream()
+//                                .anyMatch(silentAnnotation ->
+//                                        silentAnnotation.getSecond().getStartOffset() == startOffset &&
+//                                        silentAnnotation.getSecond().getEndOffset() == endOffset &&
+//                                        silentAnnotation.getThird().getText().equals(codeAction.getTitle())
+//                                 );
+//                        if (!found) {
+//                            Tuple3<HighlightSeverity, TextRange, LSPCodeActionFix> sAnnotation =
+//                                    new Tuple3<>(
+//                                            HighlightSeverity.INFORMATION,
+//                                            range,
+//                                            new LSPCodeActionFix(FileUtils.editorToURIString(editor), codeAction)
+//                                    );
+//                            silentAnnotations.add(sAnnotation);
+//                        }
+//                        codeActionSyncRequired = true;
+//                    }
+//                }
+//            });
+//            // If code actions are updated, forcefully triggers the inspection tool.
+//            if (codeActionSyncRequired) {
+//                // double-delay the update to ensure that the code analyzer finishes.
+//                invokeLater(this::updateErrorAnnotations);
+//            }
+//            annotationsRefreshed = false;
+//        });
     }
 
     /**
