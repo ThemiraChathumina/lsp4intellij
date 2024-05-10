@@ -320,8 +320,7 @@ public class DefaultRequestManager implements RequestManager {
     public void didOpen(DidOpenTextDocumentParams params) {
         if (checkStatus()) {
             try {
-                if ((textDocumentSyncKind != null && textDocumentSyncKind != TextDocumentSyncKind.None) ||
-                        Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getOpenClose)
+                if (Optional.ofNullable(textDocumentOptions).map(TextDocumentSyncOptions::getOpenClose)
                                 .orElse(false)) {
                     textDocumentService.didOpen(params);
                 }
