@@ -24,6 +24,7 @@ import org.eclipse.lsp4j.services.LanguageServer;
 import org.jetbrains.annotations.NotNull;
 import org.wso2.lsp4intellij.client.languageserver.serverdefinition.ServerListener;
 
+import java.util.concurrent.TimeoutException;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
@@ -45,7 +46,7 @@ class MessageHandler implements Function<MessageConsumer, MessageConsumer> {
                 handleMessage(message);
                 try {
                     messageConsumer.consume(message);
-                } catch (Exception e) {
+                } catch (NullPointerException e) {
                     Log.warn("Error while consuming message", e);
                 }
             }
