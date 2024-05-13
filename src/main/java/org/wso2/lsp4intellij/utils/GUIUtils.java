@@ -114,21 +114,12 @@ public final class GUIUtils {
         styleSheet.addRule("body { padding: 5px; }");
     }
 
-    private static void addColorToBody(JTextPane textPane) {
+    private static void makeBodyTransparent(JTextPane textPane) {
         StyleSheet styleSheet = getStyleSheet(textPane);
         if (styleSheet == null || styleSheet.getStyle("body") == null) {
             return;
         }
-        Color color = textPane.getBackground();
-        if (textPane.getParent() != null) {
-            if (textPane.getParent().getParent() != null) {
-                color = textPane.getParent().getParent().getBackground();
-            } else {
-                color = textPane.getParent().getBackground();
-            }
-        }
-        String hexColor = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
-        styleSheet.addRule(String.format("body { background-color: %s; }", hexColor));
+        styleSheet.addRule("body { background-color: rgba(0, 0, 0, 0); }");
     }
 
     private static void addPaddingToCodeBlocks(JTextPane textPane, String text) {
@@ -174,7 +165,7 @@ public final class GUIUtils {
         setCodeBlockBackgroundColor(textPane);
         adjustWidth(textPane);
         addPaddingToBody(textPane);
-        addColorToBody(textPane);
+        makeBodyTransparent(textPane);
 
         textPane.setEditable(false);
         textPane.addHyperlinkListener(e -> {
