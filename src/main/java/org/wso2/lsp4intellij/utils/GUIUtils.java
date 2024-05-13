@@ -119,8 +119,14 @@ public final class GUIUtils {
         if (styleSheet == null || styleSheet.getStyle("body") == null) {
             return;
         }
-        Color color = textPane.getParent() != null ? textPane.getParent().getBackground()
-                : textPane.getBackground();
+        Color color = textPane.getBackground();
+        if (textPane.getParent() != null) {
+            if (textPane.getParent().getParent() != null) {
+                color = textPane.getParent().getParent().getBackground();
+            } else {
+                color = textPane.getParent().getBackground();
+            }
+        }
         String hexColor = String.format("#%02x%02x%02x", color.getRed(), color.getGreen(), color.getBlue());
         styleSheet.addRule(String.format("body { background-color: %s; }", hexColor));
     }
